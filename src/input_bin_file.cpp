@@ -1,5 +1,8 @@
 #include "input_bin_file.h"
 
+using std::cout;
+using std::endl;
+
 InBinFile::InBinFile(std::string const &file_path) : file(file_path, std::ios::binary)
 {
     if (!file.is_open())
@@ -13,30 +16,24 @@ InBinFile::InBinFile(std::string const &file_path) : file(file_path, std::ios::b
     file.seekg(0, std::ios_base::beg);
 }
 
-// возвращает количество успешно прочитанных байт
-template <class T>
-size_t InBinFile::Read(T &data)
+bool InBinFile::Seek(size_t offset, StartPoint start)
 {
-    try
+    if (start == StartPoint::BEG)
     {
-        file.read(reinterpret_cast<char *>(&data), sizeof(T));
+        if (offset > size)
+        {
+            return false;
+        }
+        file.seekg(offset, std::ios_base::beg);
     }
-    catch(std::exception const &e)
+    else if (start == StartPoint::CUR)
     {
-        std::cout << "\n\nRead(T &) throws exception" << std::endl;
-        std::cout << e.what() << std::endl;
-        file.clear();
+        if (offset + file.tellg() > size)
+        {
+            return false;
+        }
+        file.seekg(offset, std::ios_base::cur);
     }
-    return file.gcount();
-}
-
-bool InBinFile::Seek(size_t pos_read)
-{
-    if (pos_read > size)
-    {
-        return false;
-    }
-    file.seekg(pos_read, std::ios_base::beg);
     return true;
 }
 
