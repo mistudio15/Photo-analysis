@@ -6,6 +6,8 @@
 using byte      = uint8_t;
 using bytes     = std::vector<uint8_t>;
 
+class InBinFile;
+
 // для enum class нужно перегружать operator|
 
 enum Tags : byte
@@ -35,5 +37,7 @@ bool HasExif(InBinFile &file);
 std::unordered_map<Tags, double> ExtractExif(InBinFile &file, SettedTags settedTags); 
 
 uint64_t MergeBytes(bytes const &vecBytes);
+
+void ReverseBytes(bytes &bytes);
 
 std::ostream &operator <<(std::ostream &out, Tags const &tag);

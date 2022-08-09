@@ -10,6 +10,7 @@
 #include <exception>
 #include <bitset>
 #include <filesystem>
+#include <unistd.h>
 #include <cmath>
 #include <map>
 #include <unordered_map>

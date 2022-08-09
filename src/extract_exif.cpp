@@ -127,7 +127,6 @@ std::unordered_map<Tags, double> ExtractExif(InBinFile &file, SettedTags settedT
     Позиция, с которой начинается отсчет при любых смещениях
     */
     size_t offset = file.Tell();
-    bool direct = true;
     /*
     "First 8bytes of TIFF format are TIFF header. 
     First 2bytes defines byte align of TIFF data: 
@@ -136,17 +135,15 @@ std::unordered_map<Tags, double> ExtractExif(InBinFile &file, SettedTags settedT
     file.Read(buf2);
     if (isEqual(buf2, cByteAlignII))
     {
-        // Little-endian
-        direct = false;
+        // небольшой костыль...
+        (dynamic_cast<EndianDecorator&>(file)).SetEndian(Endian::LITTLE);
     }
+    // else Endian::BIG by default
+
     // Пропускаем 2A 00 (Little) или 00 2A (Big)
-    file.Seek(2, StartPoint::CUR);
+    bool f = file.Seek(2, StartPoint::CUR);
     // смещение к IFD0
     file.Read(buf4);
-    if (!direct)
-    {
-        ReverseBytes(buf4);
-    }
     file.Seek(offset + MergeBytes(buf4));
     // Количество записей по 12 байт
     file.Read(buf2);
@@ -159,10 +156,6 @@ std::unordered_map<Tags, double> ExtractExif(InBinFile &file, SettedTags settedT
     for (size_t i = 0; i < nEntries; ++i)
     {
         file.Read(buf2);
-        if (!direct)
-        {
-            ReverseBytes(buf2);
-        }
         if (isEqual(buf2, cExifOffset))
         {
             isExifOffset = true;
@@ -182,10 +175,6 @@ std::unordered_map<Tags, double> ExtractExif(InBinFile &file, SettedTags settedT
     file.Seek(6, StartPoint::CUR);
     // Читаем смещение к Exif SubIFD
     file.Read(buf4);
-    if (!direct)
-    {
-        ReverseBytes(buf4);
-    }
     std::unordered_map<Tags, double> table;
     // Почему + 2 не понял
     file.Seek(offset + MergeBytes(buf4) + 2);
@@ -196,10 +185,6 @@ std::unordered_map<Tags, double> ExtractExif(InBinFile &file, SettedTags settedT
     while (MergeBytes(buf2) != 0)
     {
         int found = 0;
-        if (!direct)
-        {
-            ReverseBytes(buf2);
-        }
         // Если тэг установлен и прочитанный тэг соответствует установленному
         if (settedTags.isExposureTime && isEqual(buf2, cExposureTime))
         {
@@ -225,22 +210,10 @@ std::unordered_map<Tags, double> ExtractExif(InBinFile &file, SettedTags settedT
         {
             // Читаем и сохраняем код формата данных
             file.Read(buf2);
-            if (!direct)
-            {
-                ReverseBytes(buf2);
-            }
             int typeDataFormat = MergeBytes(buf2);
             // Читаем и сохраняем количество компонентов
             file.Read(buf4);
-            if (!direct)
-            {
-                ReverseBytes(buf4);
-            }
             int nComponents = MergeBytes(buf4);
-            if (!direct)
-            {
-                ReverseBytes(buf4);
-            }
             /*
                 ExposureTime        5 = uint32_t / uint32_t
                 ISO                 3 = uint16_t
@@ -259,13 +232,8 @@ std::unordered_map<Tags, double> ExtractExif(InBinFile &file, SettedTags settedT
                     */
                     // Читаем данные
                     file.Read(buf2);
-                    if (!direct)
-                    {
-                        ReverseBytes(buf2);
-                    }
                     table[(Tags)found] = MergeBytes(buf2);
                     file.Seek(2, StartPoint::CUR);
-                    std::cout << "ISO Tell " << std::dec << file.Tell() << std::endl;
                     break;
                 }
                 // uint64_t = uint32_t / uint32_t
@@ -276,10 +244,6 @@ std::unordered_map<Tags, double> ExtractExif(InBinFile &file, SettedTags settedT
                         значит со смещением
                     */
                     file.Read(buf4);
-                    if (!direct)
-                    {
-                        ReverseBytes(buf4);
-                    }
                     // Т.к. будем смещаться, сохраняем текущую позицию
                     size_t save_pos = file.Tell();
                     file.Seek(offset + MergeBytes(buf4));
@@ -287,11 +251,6 @@ std::unordered_map<Tags, double> ExtractExif(InBinFile &file, SettedTags settedT
                     file.Read(buf4);
                     bytes buf4_2(4);
                     file.Read(buf4_2);
-                    if (!direct)
-                    {
-                        ReverseBytes(buf4);
-                        ReverseBytes(buf4_2);
-                    }
                     // Возвращаемся на текущую позицию
                     file.Seek(save_pos);
 

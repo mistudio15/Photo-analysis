@@ -16,6 +16,31 @@ InBinFile::InBinFile(std::string const &file_path) : file(file_path, std::ios::b
     file.seekg(0, std::ios_base::beg);
 }
 
+size_t InBinFile::Read(std::vector<byte> &data)
+{
+    try
+    {
+        file.read(reinterpret_cast<char *>(&data[0]), data.size());
+    }
+    catch(std::exception const &e)
+    {
+        std::cout << "\n\nRead(T &) throws exception" << std::endl;
+        std::cout << e.what() << std::endl;
+        file.clear();
+    }
+    return file.gcount();
+}
+
+size_t EndianDecorator::Read(std::vector<byte> &data)
+{
+    size_t nBytes = InBinFile::Read(data);
+    if (endian == Endian::LITTLE)
+    {
+        ReverseBytes(data);
+    }
+    return nBytes;
+}
+
 bool InBinFile::Seek(size_t offset, StartPoint start)
 {
     if (start == StartPoint::BEG)
@@ -44,5 +69,8 @@ size_t InBinFile::Tell()
 
 InBinFile::~InBinFile()
 {
-    file.close();
+    if (file.is_open())
+    {
+        file.close();
+    }
 }

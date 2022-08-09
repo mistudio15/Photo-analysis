@@ -13,10 +13,12 @@ int main()
     SettedTags setTags;
     setTags.flags = Tags::ISO | Tags::ExposureTime | Tags::ApertureValue | Tags::FocalLength;
     // With Exif
-    InBinFile file("../slud.jpg");
+    // InBinFile file("../slud.jpg");
+    InBinFile file("../DSC07634.jpeg");
+    EndianDecorator endianFile(std::move(file));
     // Without Exif
     // InBinFile file("../ratibor.png"); 
-    auto m = ExtractExif(file, setTags);
+    auto m = ExtractExif(endianFile, setTags);
     if (m.size() == 0)
     {
         std::cout << "Can not extract exif" << std::endl;
