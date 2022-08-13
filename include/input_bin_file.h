@@ -40,6 +40,7 @@ private:
     size_t size;
 };
 
+// Паттерн "Декоратор"
 // Идея с move-конструктором спасла Вселенную!
 class EndianDecorator : public InBinFile
 {

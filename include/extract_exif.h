@@ -32,12 +32,50 @@ union SettedTags
     byte flags;
 };
 
+
+// Паттерн "Централизованная цепочка обязанностей"
+class Handler
+{
+public:
+    Handler(size_t offset) : m_offset(offset) {}
+    virtual bool ShouldHandle(int typeDataFormat)  = 0;
+    virtual double Handle(InBinFile &file)  = 0;
+protected:
+    size_t m_offset;
+};
+
+class Type3Handler : public Handler
+{
+public:
+    Type3Handler(size_t offset) : Handler(offset) {}
+    bool ShouldHandle(int typeDataFormat)  override 
+    {
+        return typeDataFormat == 3;
+    }
+    double Handle(InBinFile &file)  override;
+};
+
+class Type5Handler : public Handler
+{
+public:
+    Type5Handler(size_t offset) : Handler(offset) {}
+    bool ShouldHandle(int typeDataFormat)  override
+    {
+        return typeDataFormat == 5;
+    }
+    double Handle(InBinFile &file)  override;
+};
+
 bool HasExif(InBinFile &file);
 
-std::unordered_map<Tags, double> ExtractExif(InBinFile &file, SettedTags settedTags); 
+// std::unordered_map<Tags, double> ExtractExif(InBinFile &file, SettedTags settedTags); 
+std::unordered_map<uint32_t, double> ExtractExif(InBinFile &file, std::vector<bytes> const &vecTags); 
 
 uint64_t MergeBytes(bytes const &vecBytes);
 
 void ReverseBytes(bytes &bytes);
 
 std::ostream &operator <<(std::ostream &out, Tags const &tag);
+
+
+

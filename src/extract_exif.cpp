@@ -87,6 +87,43 @@ uint64_t MergeBytes(bytes const &vecBytes)
     return result;
 }
 
+// uint16_t
+double Type3Handler::Handle(InBinFile &file)
+{
+    bytes buf2(2);
+    /*
+        Считаем, что количество компонентов 1 => 1 * 2 (байта) = 2 < 4, 
+        значит без смещения
+    */
+    // Читаем данные
+    file.Read(buf2);
+    file.Seek(2, StartPoint::CUR);
+    return MergeBytes(buf2);
+}
+
+// uint32_t / uint32_t
+double Type5Handler::Handle(InBinFile &file)
+{
+    bytes addres(4);
+    bytes buf4_1(4);
+    bytes buf4_2(4);
+    /*
+        Считаем что количество компонентов ненулевое => 8 * x > 4, 
+        значит со смещением
+    */
+    file.Read(addres);
+    // Т.к. будем смещаться, сохраняем текущую позицию
+    size_t save_pos = file.Tell();
+    file.Seek(m_offset + MergeBytes(addres));
+    // Читаем два uint32_t
+    file.Read(buf4_1);
+    file.Read(buf4_2);
+    // Возвращаемся на текущую позицию
+    file.Seek(save_pos);
+
+    return static_cast<double>(MergeBytes(buf4_1)) / MergeBytes(buf4_2);
+}
+
 // устанавливает файловый указатель на TIFF Header
 bool HasExif(InBinFile &file)
 {
@@ -114,7 +151,7 @@ bool HasExif(InBinFile &file)
 
 // Пустой контейнер std::map на выходе соответствует отсутствию либо Exif, 
 // либо установленных признаков
-std::unordered_map<Tags, double> ExtractExif(InBinFile &file, SettedTags settedTags)
+std::unordered_map<uint32_t, double> ExtractExif(InBinFile &file, std::vector<bytes> const &vecTags)
 {
     // буферы для чтения из бинарного файла
     bytes buf2(2);
@@ -128,14 +165,15 @@ std::unordered_map<Tags, double> ExtractExif(InBinFile &file, SettedTags settedT
     */
     size_t offset = file.Tell();
     /*
-    "First 8bytes of TIFF format are TIFF header. 
-    First 2bytes defines byte align of TIFF data: 
-    "II" (Intel) means Little-endian, "MM" (Motorola) means Big-endian"
+        "First 8bytes of TIFF format are TIFF header. 
+        First 2bytes defines byte align of TIFF data: 
+        "II" (Intel) means Little-endian, "MM" (Motorola) means Big-endian"
     */
     file.Read(buf2);
-    if (isEqual(buf2, cByteAlignII))
+    if (buf2 == cByteAlignII)
     {
         // небольшой костыль...
+        // т.к. порядок байтов становится известен только на этапе просмотра
         (dynamic_cast<EndianDecorator&>(file)).SetEndian(Endian::LITTLE);
     }
     // else Endian::BIG by default
@@ -150,13 +188,13 @@ std::unordered_map<Tags, double> ExtractExif(InBinFile &file, SettedTags settedT
     bool isExifOffset = false;
     size_t nEntries = MergeBytes(buf2);
     /*
-    Поиск тега ExifOffset, который хранит смещение к Exif SubIFD,
-    где расположены теги, соответствующие настройкам камеры. 
+        Поиск тега ExifOffset, который хранит смещение к Exif SubIFD,
+        где расположены теги, соответствующие настройкам камеры. 
     */
     for (size_t i = 0; i < nEntries; ++i)
     {
         file.Read(buf2);
-        if (isEqual(buf2, cExifOffset))
+        if (buf2 == cExifOffset)
         {
             isExifOffset = true;
             break;
@@ -169,49 +207,45 @@ std::unordered_map<Tags, double> ExtractExif(InBinFile &file, SettedTags settedT
         return {};
     }
     /*
-    Пропускаем формат данных и количество компонентов тега ExifOffset,
-    т.к. они известны: формат данных - unsigned int (4), количество компонентов - 1.
+        Пропускаем формат данных и количество компонентов тега ExifOffset,
+        т.к. они известны: формат данных - unsigned int (4), количество компонентов - 1.
     */
     file.Seek(6, StartPoint::CUR);
     // Читаем смещение к Exif SubIFD
     file.Read(buf4);
-    std::unordered_map<Tags, double> table;
+    std::unordered_map<uint32_t, double> table;
     // Почему + 2 не понял
     file.Seek(offset + MergeBytes(buf4) + 2);
     // Читаем тэг
     file.Read(buf2);
     // просмотр каждой записи и поиск соответствующих установленным флагам
     // конец цикла - нулевой тэг
+
+    Type3Handler h3(offset);
+    Type5Handler h5(offset);
+    std::vector<Handler *> vecHandlers = {&h3, &h5};
+    
     while (MergeBytes(buf2) != 0)
     {
-        int found = 0;
-        // Если тэг установлен и прочитанный тэг соответствует установленному
-        if (settedTags.isExposureTime && isEqual(buf2, cExposureTime))
+        bool found = false;
+        bytes curTag(2);
+
+        auto it = std::find(vecTags.begin(), vecTags.end(), buf2);
+        if (it != vecTags.end())
         {
-            found = Tags::ExposureTime;
+            found = true;
+            curTag = buf2;
         }
-        else if (settedTags.isISO && isEqual(buf2, cISO))
+        if (!found)
         {
-            found = Tags::ISO;
+            file.Seek(10, StartPoint::CUR);
         }
-        else if (settedTags.isDateTimeOriginal && isEqual(buf2, cDateTimeOriginal))
-        {
-            found = Tags::DateTimeOriginal;
-        }
-        else if (settedTags.isApertureValue && isEqual(buf2, cApertureValue))
-        {
-            found = Tags::ApertureValue;
-        }
-        else if (settedTags.isFocalLength && isEqual(buf2, cFocalLength))
-        {
-            found = Tags::FocalLength;
-        }
-        if (found)
+        else
         {
             // Читаем и сохраняем код формата данных
             file.Read(buf2);
             int typeDataFormat = MergeBytes(buf2);
-            // Читаем и сохраняем количество компонентов
+            // Читаем и сохраняем количество компонентов (не используется)
             file.Read(buf4);
             int nComponents = MergeBytes(buf4);
             /*
@@ -221,53 +255,21 @@ std::unordered_map<Tags, double> ExtractExif(InBinFile &file, SettedTags settedT
                 ApertureValue       5
                 FocalLength         5
             */
-            switch (typeDataFormat)
-            {
-                // uint16_t
-                case 3:
-                {
-                    /*
-                        Считаем, что количество компонентов 1 => 1 * 2 (байта) = 2 < 4, 
-                        значит без смещения
-                    */
-                    // Читаем данные
-                    file.Read(buf2);
-                    table[(Tags)found] = MergeBytes(buf2);
-                    file.Seek(2, StartPoint::CUR);
-                    break;
-                }
-                // uint64_t = uint32_t / uint32_t
-                case 5:
-                {
-                    /*
-                        Считаем что количество компонентов ненулевое => 8 * x > 4, 
-                        значит со смещением
-                    */
-                    file.Read(buf4);
-                    // Т.к. будем смещаться, сохраняем текущую позицию
-                    size_t save_pos = file.Tell();
-                    file.Seek(offset + MergeBytes(buf4));
-                    // Читаем два uint32_t
-                    file.Read(buf4);
-                    bytes buf4_2(4);
-                    file.Read(buf4_2);
-                    // Возвращаемся на текущую позицию
-                    file.Seek(save_pos);
 
-                    table[static_cast<Tags>(found)] = 
-                            static_cast<double>(MergeBytes(buf4)) / MergeBytes(buf4_2);
+            for (auto &&handler : vecHandlers)
+            {
+                if (handler->ShouldHandle(typeDataFormat))
+                {
+                    table[MergeBytes(curTag)] = handler->Handle(file);
                     break;
                 }
             }
-        }
-        else
-        {
-            file.Seek(10, StartPoint::CUR);
+
         }
         file.Read(buf2);
     }
     // Обработка значений выдержки и диафрагмы 
-    table[Tags::ExposureTime]   = 1.0 / table[Tags::ExposureTime];
-    table[Tags::ApertureValue]  = pow(1.4142, table[Tags::ApertureValue]);
+    table[MergeBytes(cExposureTime)]   = 1.0 / table[MergeBytes(cExposureTime)];
+    table[MergeBytes(cApertureValue)]  = pow(1.4142, table[MergeBytes(cApertureValue)]);
     return table;
 }
