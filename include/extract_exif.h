@@ -66,7 +66,32 @@ public:
     double Handle(InBinFile &file)  override;
 };
 
+class Type2Handler : public Handler
+{
+public:
+    Type2Handler(size_t offset) : Handler(offset) {}
+    bool ShouldHandle(int typeDataFormat)  override
+    {
+        return typeDataFormat == 2;
+    }
+    double Handle(InBinFile &file)  override;
+};
+
 bool HasExif(InBinFile &file);
+
+/*
+    JPEG
+        JPEG(std::istream &)
+        Extract() = 0;
+        FindBytes();
+        ----------------------
+        std::istream &in;
+
+    Exif
+        Extract();
+    Pixels
+        Extract();
+*/
 
 // std::unordered_map<Tags, double> ExtractExif(InBinFile &file, SettedTags settedTags); 
 std::unordered_map<uint32_t, double> ExtractExif(InBinFile &file, std::vector<bytes> const &vecTags); 

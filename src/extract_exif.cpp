@@ -87,15 +87,50 @@ uint64_t MergeBytes(bytes const &vecBytes)
     return result;
 }
 
+// uint8_t ASCII
+double Type2Handler::Handle(InBinFile &file)
+{
+    bytes buf4(4);
+    bytes addres(4);
+    file.Read(buf4);
+    int nComponents = MergeBytes(buf4);
+    file.Read(addres);
+
+    size_t save_pos = file.Tell();
+    
+    file.Seek(m_offset + MergeBytes(addres));
+    
+    bytes dataVec(nComponents);
+    uint8_t symbol;
+    std::stringstream strStream;
+    for (size_t i = 0; i < nComponents; ++i)
+    {
+        file.Read(symbol);
+        if (symbol == ':')
+        {
+            strStream << ' ';
+        }
+        else
+        {
+            strStream << symbol;
+        }
+    }
+    file.Seek(save_pos);
+    std::tm tm{};
+    strStream >> tm.tm_year >> tm.tm_mon >> tm.tm_mday >> tm.tm_hour >> tm.tm_min >> tm.tm_sec;
+    tm.tm_year -= 1900;
+    tm.tm_mon -= 1;
+    std::time_t rawTime = std::mktime(&tm);
+    return rawTime;
+}
+
 // uint16_t
 double Type3Handler::Handle(InBinFile &file)
 {
     bytes buf2(2);
-    /*
-        Считаем, что количество компонентов 1 => 1 * 2 (байта) = 2 < 4, 
-        значит без смещения
-    */
-    // Читаем данные
+    // Пропускаем количество компонентов (считаем = 1)
+    file.Seek(4, StartPoint::CUR);
+    uint8_t symbol;
     file.Read(buf2);
     file.Seek(2, StartPoint::CUR);
     return MergeBytes(buf2);
@@ -107,6 +142,8 @@ double Type5Handler::Handle(InBinFile &file)
     bytes addres(4);
     bytes buf4_1(4);
     bytes buf4_2(4);
+    // Пропускаем количество компонентов (считаем = 1)
+    file.Seek(4, StartPoint::CUR);
     /*
         Считаем что количество компонентов ненулевое => 8 * x > 4, 
         значит со смещением
@@ -179,7 +216,7 @@ std::unordered_map<uint32_t, double> ExtractExif(InBinFile &file, std::vector<by
     // else Endian::BIG by default
 
     // Пропускаем 2A 00 (Little) или 00 2A (Big)
-    bool f = file.Seek(2, StartPoint::CUR);
+    file.Seek(2, StartPoint::CUR);
     // смещение к IFD0
     file.Read(buf4);
     file.Seek(offset + MergeBytes(buf4));
@@ -221,9 +258,10 @@ std::unordered_map<uint32_t, double> ExtractExif(InBinFile &file, std::vector<by
     // просмотр каждой записи и поиск соответствующих установленным флагам
     // конец цикла - нулевой тэг
 
+    Type2Handler h2(offset);
     Type3Handler h3(offset);
     Type5Handler h5(offset);
-    std::vector<Handler *> vecHandlers = {&h3, &h5};
+    std::vector<Handler *> vecHandlers = {&h2, &h3, &h5};
     
     while (MergeBytes(buf2) != 0)
     {
@@ -245,9 +283,6 @@ std::unordered_map<uint32_t, double> ExtractExif(InBinFile &file, std::vector<by
             // Читаем и сохраняем код формата данных
             file.Read(buf2);
             int typeDataFormat = MergeBytes(buf2);
-            // Читаем и сохраняем количество компонентов (не используется)
-            file.Read(buf4);
-            int nComponents = MergeBytes(buf4);
             /*
                 ExposureTime        5 = uint32_t / uint32_t
                 ISO                 3 = uint16_t
@@ -256,6 +291,8 @@ std::unordered_map<uint32_t, double> ExtractExif(InBinFile &file, std::vector<by
                 FocalLength         5
             */
 
+           // Лучше закинуть поток в функцию, она уже сама прочитает формат данных и вызовет обработчика
+            
             for (auto &&handler : vecHandlers)
             {
                 if (handler->ShouldHandle(typeDataFormat))
@@ -270,6 +307,7 @@ std::unordered_map<uint32_t, double> ExtractExif(InBinFile &file, std::vector<by
     }
     // Обработка значений выдержки и диафрагмы 
     table[MergeBytes(cExposureTime)]   = 1.0 / table[MergeBytes(cExposureTime)];
-    table[MergeBytes(cApertureValue)]  = pow(1.4142, table[MergeBytes(cApertureValue)]);
+    table[MergeBytes(cApertureValue)]  = std::round(pow(1.4142, table[MergeBytes(cApertureValue)]) * 10) / 10;
+    table[MergeBytes(cFocalLength)]  = std::round(table[MergeBytes(cFocalLength)]);
     return table;
 }

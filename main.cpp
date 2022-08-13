@@ -47,7 +47,7 @@ int main()
     // setTags.flags = Tags::ISO | Tags::ExposureTime | Tags::ApertureValue | Tags::FocalLength;
     // With Exif
     // InBinFile file("../slud.jpg");
-    InBinFile file("../DSC07634.jpeg");
+    InBinFile file("../gps.jpg");
     EndianDecorator endianFile(std::move(file));
     // Without Exif
     // InBinFile file("../ratibor.png"); 
@@ -60,7 +60,16 @@ int main()
     }
     for (auto const &[key, value] : m)
     {
-        std::cout << std::hex <<  key <<  " : " << value << std::endl;
+        if (key == 0x9003)
+        {
+            std::time_t rawTime = (time_t)value;
+            std::cout << std::hex << key << " : ";
+            std::cout << std::dec << std::put_time(std::localtime(&rawTime), "%Y-%m-%d %X") << std::endl;
+        }
+        else
+        {
+            std::cout << std::hex << key <<  " : " << value << std::endl;
+        }
     }
     return 1;
 }
