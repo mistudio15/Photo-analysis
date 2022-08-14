@@ -1,4 +1,5 @@
 #include "input_bin_file.h"
+#include "extract_exif.h"
 
 using std::cout;
 using std::endl;
@@ -31,7 +32,7 @@ size_t InBinFile::Read(std::vector<byte> &data)
     return file.gcount();
 }
 
-size_t EndianDecorator::Read(std::vector<byte> &data)
+size_t EndianFile::Read(std::vector<byte> &data)
 {
     size_t nBytes = InBinFile::Read(data);
     if (endian == Endian::LITTLE)

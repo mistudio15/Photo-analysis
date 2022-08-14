@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "input_bin_file.h"
 #include "extract_exif.h"
 
@@ -21,55 +22,54 @@
     Наверное, лучше, чтобы Handler'ы возвращали поток с указателем в том же месте, в каком и принимали
 */
 
-int main()
+std::vector<uint16_t> ReadTagsFromFile(std::string const &file_path)
 {
-    std::ifstream fileTags("../tags.txt");
+    std::ifstream fileTags(file_path);
     if (!fileTags.is_open())
     {
         std::cout << "Can not find file with tags" << std::endl;
-        return 1;
+        return {};
     }
-    std::vector<bytes> vecTags;
+    std::vector<uint16_t> vecTags;
     std::string strByte;
-    bytes Tag(2);
     while (fileTags >> strByte)
     {
-        Tag[0] = (byte)std::stoi(strByte, nullptr, 16);
-
-        fileTags >> strByte;
-        Tag[1] = (byte)std::stoi(strByte, nullptr, 16);
-        
-        vecTags.push_back(Tag);
+        uint16_t tag = (uint16_t)std::stoi(strByte, nullptr, 16);
+        vecTags.push_back(tag);
     }
     fileTags.close();
+    return vecTags;
+}
 
-    // SettedTags setTags;
-    // setTags.flags = Tags::ISO | Tags::ExposureTime | Tags::ApertureValue | Tags::FocalLength;
-    // With Exif
-    // InBinFile file("../slud.jpg");
-    InBinFile file("../gps.jpg");
-    EndianDecorator endianFile(std::move(file));
-    // Without Exif
-    // InBinFile file("../ratibor.png"); 
+void PrintReport(ReportExtraction const &report, std::ostream &out)
+{
+    if (!report.done)
+    {
+        out << "Can not extract exif" << std::endl;
+        return;
+    }
+    if (report.mapData.size() == 0)
+    {
+        out << "Can not find needed tags" << std::endl;
+        return;
+    }
+    for (auto const &[key, value] : report.mapData)
+    {
+        out << std::setfill('0') << std::setw(4) << std::hex << (int)key <<  " : " << value << std::endl;
+    }
+}
 
-    auto m = ExtractExif(endianFile, vecTags);
-    if (m.size() == 0)
-    {
-        std::cout << "Can not extract exif" << std::endl;
-        return 1;
-    }
-    for (auto const &[key, value] : m)
-    {
-        if (key == 0x9003)
-        {
-            std::time_t rawTime = (time_t)value;
-            std::cout << std::hex << key << " : ";
-            std::cout << std::dec << std::put_time(std::localtime(&rawTime), "%Y-%m-%d %X") << std::endl;
-        }
-        else
-        {
-            std::cout << std::hex << key <<  " : " << value << std::endl;
-        }
-    }
+int main()
+{   
+    std::vector<uint16_t> vecTags = ReadTagsFromFile("../tags.txt");
+
+    EndianFile endianFile("../gps.jpg");
+
+    ExtracterExif extracterExif(vecTags); 
+
+    ReportExtraction report = extracterExif.ExtractExif(endianFile);
+
+    PrintReport(report, std::cout);
+
     return 1;
 }

@@ -1,9 +1,8 @@
 #pragma once
 
 #include "stdafx.h"
-#include "extract_exif.h"
 
-using byte      = uint8_t;
+using byte = uint8_t;
 
 enum class StartPoint
 {
@@ -41,11 +40,12 @@ private:
 };
 
 // Паттерн "Декоратор"
-// Идея с move-конструктором спасла Вселенную!
-class EndianDecorator : public InBinFile
+// Идея с move-конструктором спасла Вселенную! (UPD: изобрел велосипед...)
+class EndianFile : public InBinFile
 {
 public:
-    EndianDecorator(InBinFile &&binFile, Endian endian = Endian::BIG) :
+    EndianFile(std::string const &file_path, Endian endian = Endian::BIG) : InBinFile(file_path), endian(endian) {}
+    EndianFile(InBinFile &&binFile, Endian endian = Endian::BIG) :
     InBinFile(std::move(binFile)), endian(endian) {} 
     void SetEndian(Endian endian_) { endian = endian_; }
     virtual size_t Read(std::vector<byte> &data) override;

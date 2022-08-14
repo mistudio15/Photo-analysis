@@ -2,105 +2,52 @@
 
 #include "stdafx.h"
 #include "input_bin_file.h"
+#include "handlers.h"
 
 using byte      = uint8_t;
 using bytes     = std::vector<uint8_t>;
 
-class InBinFile;
-
-// для enum class нужно перегружать operator|
-
-enum Tags : byte
+enum Tags : uint32_t
 {
-    ExposureTime        = 0b000001,
-    ISO                 = 0b000010,
-    DateTimeOriginal    = 0b000100,
-    ApertureValue       = 0b001000,
-    FocalLength         = 0b010000
+    ExposureTime        = 0x829a,
+    ISO                 = 0x8827,
+    DateTimeOriginal    = 0x9003,
+    ApertureValue       = 0x9202,
+    FocalLength         = 0x920A
 };
 
-union SettedTags
+struct ReportExtraction
 {
-    struct
-    {
-        byte isExposureTime      : 1;
-        byte isISO               : 1;
-        byte isDateTimeOriginal  : 1;
-        byte isApertureValue     : 1;
-        byte isFocalLength       : 1;
-    };
-    byte flags;
+    bool done = false;
+    std::vector<uint16_t> notFoundTags;
+    std::unordered_map<uint16_t, std::string> mapData;
 };
-
-
-// Паттерн "Централизованная цепочка обязанностей"
-class Handler
-{
-public:
-    Handler(size_t offset) : m_offset(offset) {}
-    virtual bool ShouldHandle(int typeDataFormat)  = 0;
-    virtual double Handle(InBinFile &file)  = 0;
-protected:
-    size_t m_offset;
-};
-
-class Type3Handler : public Handler
-{
-public:
-    Type3Handler(size_t offset) : Handler(offset) {}
-    bool ShouldHandle(int typeDataFormat)  override 
-    {
-        return typeDataFormat == 3;
-    }
-    double Handle(InBinFile &file)  override;
-};
-
-class Type5Handler : public Handler
-{
-public:
-    Type5Handler(size_t offset) : Handler(offset) {}
-    bool ShouldHandle(int typeDataFormat)  override
-    {
-        return typeDataFormat == 5;
-    }
-    double Handle(InBinFile &file)  override;
-};
-
-class Type2Handler : public Handler
-{
-public:
-    Type2Handler(size_t offset) : Handler(offset) {}
-    bool ShouldHandle(int typeDataFormat)  override
-    {
-        return typeDataFormat == 2;
-    }
-    double Handle(InBinFile &file)  override;
-};
-
-bool HasExif(InBinFile &file);
-
-/*
-    JPEG
-        JPEG(std::istream &)
-        Extract() = 0;
-        FindBytes();
-        ----------------------
-        std::istream &in;
-
-    Exif
-        Extract();
-    Pixels
-        Extract();
-*/
-
-// std::unordered_map<Tags, double> ExtractExif(InBinFile &file, SettedTags settedTags); 
-std::unordered_map<uint32_t, double> ExtractExif(InBinFile &file, std::vector<bytes> const &vecTags); 
 
 uint64_t MergeBytes(bytes const &vecBytes);
 
 void ReverseBytes(bytes &bytes);
 
 std::ostream &operator <<(std::ostream &out, Tags const &tag);
+
+class ExtracterExif
+{
+public:
+    ExtracterExif(std::vector<uint16_t> const &tags);
+    ReportExtraction ExtractExif(InBinFile &file);
+private:
+    size_t offset;
+    std::vector<std::unique_ptr<Handler>> vecHandlers;
+    std::vector<uint16_t> vecTags;
+    const std::vector<uint16_t> vecRefs = { 0x8769, 0x8825 };
+    ReportExtraction report;
+    bytes buf4 = bytes(4);
+    bytes buf2 = bytes(2);
+    
+    void Parse(InBinFile &file);
+
+    bool HasExif(InBinFile &file);
+};
+
 
 
 
