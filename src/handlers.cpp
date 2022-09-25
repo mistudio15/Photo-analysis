@@ -1,5 +1,5 @@
-#include "handlers.h"
-#include "extract_exif.h"
+#include "include/handlers.h"
+#include "include/extract_exif.h"
 
 class InBinFile;
 
@@ -62,6 +62,7 @@ std::string Type3Handler::Handle(InBinFile &file, size_t offset)
             result += MergeBytes(buf2);
             if (i != nComponents - 1)
             {
+                // пробел между 16-байтными значениями
                 result += ' ';
             }
         }

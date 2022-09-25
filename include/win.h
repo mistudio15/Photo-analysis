@@ -10,7 +10,7 @@ QT_BEGIN_NAMESPACE
 namespace Ui { class Win; }
 QT_END_NAMESPACE
 
-std::vector<ReportExtraction> AnalyzeDerectoryImages(std::filesystem::path const &directory_path, ExtracterExif &extracterExif);
+// std::vector<ReportExtraction> AnalyzeDirectoryImages(std::filesystem::path const &directory_path, ExtracterExif &extracterExif);
 
 class Win : public QWidget
 {
@@ -26,6 +26,7 @@ private:
     Ui::Win *ui;
     FormAnalyze *formAnalyze = nullptr;
     ExtracterExif extracterExif;
-    std::vector<uint16_t> vecTags = { 0x829A, 0x8827, 0x920A, 0x829d, 0x9003, 0x0001, 0x0003 };
+    // интересующие пользователя теги
+    // std::vector<uint16_t> vecTags = { 0x829A, 0x8827, 0x920A, 0x829d, 0x9003, 0x0001, 0x0003 };
 };
 #endif // WIN_H

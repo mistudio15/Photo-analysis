@@ -1,5 +1,5 @@
-#include "input_bin_file.h"
-#include "extract_exif.h"
+#include "include/input_bin_file.h"
+#include "include/extract_exif.h"
 
 using std::cout;
 using std::endl;

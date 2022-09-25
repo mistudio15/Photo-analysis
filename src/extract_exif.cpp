@@ -1,4 +1,4 @@
-#include "extract_exif.h"
+#include "include/extract_exif.h"
 
 using std::cout;
 using std::endl;
@@ -83,7 +83,7 @@ uint64_t MergeBytes(bytes const &vecBytes)
     return result;
 }
 
-
+// C:\photos
 ExtracterExif::ExtracterExif(std::vector<uint16_t> const &tags) : vecTags(tags)
 {
     vecHandlers.push_back(std::make_unique<Type2Handler>());
@@ -177,6 +177,8 @@ void ExtracterExif::Parse(InBinFile &file)
                 if (handler->ShouldHandle(typeDataFormat))
                 {
                     report.mapData[curTag] = handler->Handle(file, offset);
+                    ProcessRawProp(curTag, report.mapData[curTag]);
+                    // если знаем как обработать найденный тег, обрабатываем в обработчике
                     break;
                 }
             }

@@ -8,6 +8,14 @@ CONFIG += c++17
 # In order to do so, uncomment the following line.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
+HEADERS += \
+    include/extract_exif.h \
+    include/formanalyze.h \
+    include/handlers.h \
+    include/input_bin_file.h \
+    include/stdafx.h \
+    include/win.h
+
 SOURCES += \
     src/extract_exif.cpp \
     src/formanalyze.cpp \
@@ -17,13 +25,7 @@ SOURCES += \
     src/stdafx.cpp \
     src/win.cpp
 
-HEADERS += \
-    include/extract_exif.h \
-    include/formanalyze.h \
-    include/handlers.h \
-    include/input_bin_file.h \
-    include/stdafx.h \
-    include/win.h
+#include(include/include.pri)
 
 FORMS += \
     formanalyze.ui \

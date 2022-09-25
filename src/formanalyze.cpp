@@ -1,14 +1,17 @@
 #include <QPushButton>
 #include <QTableWidget>
 
-#include "formanalyze.h"
+#include "include/formanalyze.h"
 #include "ui_formanalyze.h"
 
 FormAnalyze::FormAnalyze(size_t rows, size_t cols, QWidget *parent) :
     QWidget(parent),
-    ui(new Ui::FormAnalyze)
+    ui(new Ui::FormAnalyze) 
+// выдяем память под виджет (суммарный размер всех указателей на дочерние виджеты)
 {
-    ui->setupUi(this);
+    // запускаем метод, создающий все дочерние для себя (ui) виджеты
+    // родительский объект для ui - этот объект (this)
+    ui->setupUi(this); 
     ui->tableWidget->setRowCount(rows);
     ui->tableWidget->setColumnCount(cols);
     QObject::connect(ui->buttonExit, &QPushButton::clicked, this, &QWidget::close);

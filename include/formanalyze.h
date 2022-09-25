@@ -15,7 +15,8 @@ class FormAnalyze : public QWidget
 
 public:
     explicit FormAnalyze(size_t rows, size_t cols, QWidget *parent = nullptr);
-    void AddRow(size_t rows, std::vector<std::string> const &vec);
+    // разве не лучше FillRow ? 
+    void AddRow(size_t row, std::vector<std::string> const &vec);
     void SetHorizontalHeaders(std::vector<std::string> const &vecHeaders);
     ~FormAnalyze();
 
