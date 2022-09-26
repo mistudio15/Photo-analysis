@@ -59,41 +59,26 @@ public:
         { 0x8827, "ISO" },
         { 0x9003, "DateTimeOriginal" },
         { 0x829d, "F-Number" },
-        { 0x920a, "FocalLength" }
+        { 0x920a, "FocalLength" },
+        { 0x0001, "LatitudeRef" },
+        { 0x0002, "Latitude" },
+        { 0x0003, "LongitudeRef" },
+        { 0x0004, "Longitude" }
     };
 private:
     size_t offset;
-    std::vector<std::unique_ptr<Handler>> vecHandlers;
+    std::vector<std::unique_ptr<TypeHandler>> vecHandlers;
     std::vector<uint16_t> vecTags;
     std::vector<uint16_t> vecRefs = { 0x8769 /*, 0x8825  */};
     ReportExtraction report;
     bytes buf4 = bytes(4);
     bytes buf2 = bytes(2);
+
+    ManagerHandlerProperty  managerHandlerProperty;
+    ManagerHandlerType      managerHandlerType;
     
     void Parse(InBinFile &file);
     bool HasExif(InBinFile &file);
-
-    void ProcessRawProp(uint16_t tag, std::string &property)
-    {
-        if (vecHandlersRowProp.find(tag) != vecHandlersRowProp.end())
-        {
-            vecHandlersRowProp.at(tag)(hrp, property);
-        } 
-    } 
-    class HandlersRawProp
-    {
-    public:
-        void HandleExposureTime(std::string &property) const 
-        {
-            double value = 1.0 / stod(property, nullptr);
-            property = std::to_string(value);
-        }
-    };
-    const HandlersRawProp hrp;
-    const std::unordered_map<uint16_t, std::function<void(const HandlersRawProp&, std::string &)>> vecHandlersRowProp = {
-            {0x829a, &HandlersRawProp::HandleExposureTime}
-        };
-
 };
 
 

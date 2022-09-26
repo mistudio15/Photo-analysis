@@ -110,3 +110,48 @@ std::string Type5Handler::Handle(InBinFile &file, size_t offset)
 
     return result;
 }
+
+void ManagerHandlerType::Handle(int typeDataFormat, std::string &rawProperty, InBinFile &file, size_t offset)
+{
+    for (auto &&handler : vecHandlers)
+    {
+        if (handler->ShouldHandle(typeDataFormat))
+        {
+            rawProperty = handler->Handle(file, offset);
+            break;
+        }
+    }
+}
+
+void ManagerHandlerProperty::Handle(uint16_t tag, std::string &property)
+{
+    for (auto &&handler : vecHandlers)
+    {
+        if (handler->ShouldHandle(tag))
+        {
+            handler->Handle(property);
+            break;
+        }
+    }
+}
+
+void ExposureTimeHandler::Handle(std::string &property)
+{
+    puts("ExposureTimeHandler");
+    double value = std::round(1.0 / stod(property, nullptr));
+    property = toStringNoZero(value);
+}
+
+void ApertureValueHandler::Handle(std::string &property)
+{
+    puts("ApertureValueHandler");
+    double value = std::round(stod(property, nullptr) * 10) / 10;
+    property = toStringNoZero(value);
+}
+
+void FocalLengthHandler::Handle(std::string &property)
+{
+    puts("FocalLengthHandler");
+    double value = std::round(stod(property, nullptr));
+    property = toStringNoZero(value);
+}

@@ -52,7 +52,11 @@
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="linePath"/>
+      <widget class="QLineEdit" name="linePath">
+       <property name="text">
+        <string>C:\photos</string>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>
@@ -101,6 +105,13 @@
         <widget class="QCheckBox" name="checkBox_FL">
          <property name="text">
           <string>Фокусное расстояние</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="checkBox_GPS">
+         <property name="text">
+          <string>GPS координаты</string>
          </property>
         </widget>
        </item>

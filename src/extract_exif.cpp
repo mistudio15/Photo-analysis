@@ -172,16 +172,14 @@ void ExtracterExif::Parse(InBinFile &file)
             // Код формата данных
             file.Read(buf2);
             int typeDataFormat = MergeBytes(buf2);
-            for (auto &&handler : vecHandlers)
-            {
-                if (handler->ShouldHandle(typeDataFormat))
-                {
-                    report.mapData[curTag] = handler->Handle(file, offset);
-                    ProcessRawProp(curTag, report.mapData[curTag]);
-                    // если знаем как обработать найденный тег, обрабатываем в обработчике
-                    break;
-                }
-            }
+            // читаем метаданные согласно типу формата метаданных 
+            // для каждого типа формата данных свой обработчик
+            managerHandlerType.Handle(typeDataFormat, report.mapData[curTag], file, offset);
+            // обрабатываем извлеченные "сырые" свойства 
+            // например 
+                // выдержка извлекается уже обратная (т.е. 1/<value>)
+                // нам удобнее воспринимать само value - на каждое свойство свой обработчик 
+            managerHandlerProperty.Handle(curTag, report.mapData[curTag]);
         }
     }
 }
@@ -212,8 +210,3 @@ bool ExtracterExif::HasExif(InBinFile &file)
     }
     return true;
 }
-
-// table[MergeBytes(cExposureTime)]   = 1.0 / table[MergeBytes(cExposureTime)];
-// table[MergeBytes(cApertureValue)]  = pow(1.4142, table[MergeBytes(cApertureValue)]);
-// table[MergeBytes(cApertureValue)]  = std::round(pow(1.4142, table[MergeBytes(cApertureValue)]) * 10) / 10;
-// table[MergeBytes(cFocalLength)]  = std::round(table[MergeBytes(cFocalLength)]);

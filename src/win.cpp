@@ -47,6 +47,14 @@ void Win::showFormAnalyze()
     {
         vecTags.push_back(0x920a);
     }
+    if (ui->checkBox_GPS->isChecked())
+    {
+        vecRefs.push_back(0x8825);
+        vecTags.push_back(0x0001);
+        vecTags.push_back(0x0002);
+        vecTags.push_back(0x0003);
+        vecTags.push_back(0x0004);
+    }
 
     // возможно можно так: streamTags >> std::hex >> tag;
     auto fillFromLineEdit = [](std::string const &tags, std::vector<uint16_t> &vec){
@@ -84,13 +92,16 @@ void Win::showFormAnalyze()
     // Заполнение вектора заголовков 
     for (size_t i = 0; i < vecTags.size(); ++i)
     {
+        std::cout << "hex = " << std::hex << vecTags[i] << std::endl;
         auto it = ExtracterExif::mapTagsName.find(vecTags[i]); // обращаемся к static const полю
         if (it != ExtracterExif::mapTagsName.end())
         {
+            puts("y");
             vecHeaders[i + 1] = ExtracterExif::mapTagsName.at(vecTags[i]);
         }
         else
         {
+            puts("n");
             std::string tagStr;
             std::stringstream sstream;
             sstream << "0x" << std::setfill('0') << std::setw(4) << std::hex << vecTags[i];
