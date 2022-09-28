@@ -1,5 +1,4 @@
 #include <QPushButton>
-#include <qDebug>
 #include <QString>
 #include <QVector>
 #include <QMessageBox>
@@ -79,9 +78,23 @@ void Win::showFormAnalyze()
 
     std::vector<ReportExtraction> vecReports = AnalyzeDirectoryImages(file_directory, extracterExif);
 
+    // возможно стоит в цикле заполнения строк всталять новые строки
+    // tableWidget->insertRow( tableWidget->rowCount() );
+    
+    size_t nRows = 0;
+    for (size_t i = 0; i < vecReports.size(); ++i)
+    {
+        if (vecReports[i].done)
+        {
+            nRows++;
+        }
+    }
+
+    formAnalyze = new FormAnalyze(nRows, vecTags.size() + 1);
+
     // Форма с таблицей извлеченных метаданных
     // + 1 колонка для заголовка
-    formAnalyze = new FormAnalyze(vecReports.size(), vecTags.size() + 1);
+    // formAnalyze = new FormAnalyze(vecReports.size(), vecTags.size() + 1);
     // те отчеты в которых done = false входят в вектор, so для них резервируется место в таблице
 
 
@@ -113,7 +126,7 @@ void Win::showFormAnalyze()
 
     std::vector<std::string> vecFilesNoExif;
     // Заполнение таблицы
-    size_t col = 0;
+    size_t row = 0;
     for (size_t i = 0; i < vecReports.size(); ++i)
     {
         if (vecReports[i].done == false)
@@ -129,8 +142,8 @@ void Win::showFormAnalyze()
                 // пустая строка, если не нашел 
                 vecMetadata.push_back(vecReports[i].mapData[vecTags[j]]);
             }
-            formAnalyze->AddRow(col, vecMetadata);
-            ++col;
+            formAnalyze->AddRow(row, vecMetadata);
+            ++row;
         }
     }
 

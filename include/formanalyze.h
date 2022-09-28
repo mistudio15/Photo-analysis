@@ -4,6 +4,7 @@
 #include <QWidget>
 
 #include "extract_exif.h"
+#include "formgraph.h"
 
 namespace Ui {
 class FormAnalyze;
@@ -19,9 +20,12 @@ public:
     void AddRow(size_t row, std::vector<std::string> const &vec);
     void SetHorizontalHeaders(std::vector<std::string> const &vecHeaders);
     ~FormAnalyze();
+public slots:
+    void ShowFormGraph();
 
 private:
     Ui::FormAnalyze *ui;
+    FormGraph *formGraph = nullptr;
 };
 
 #endif // FORMANALYZE_H
