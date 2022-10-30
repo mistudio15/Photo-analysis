@@ -22,6 +22,7 @@ public:
     ~FormAnalyze();
 public slots:
     void ShowFormGraph();
+    void Export();
 
 private:
     Ui::FormAnalyze *ui;

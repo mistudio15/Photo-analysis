@@ -6,7 +6,6 @@
 #include <QTabWidget>
 #include <QDebug>
 
-
 #include "stdafx.h"
 
 #include "win.h"
@@ -20,14 +19,106 @@ Win::Win(QWidget *parent)
 {
     ui->setupUi(this); 
 
-    QVector<int> vec;
-    ui->lineEdit_OpenDir->setPlaceholderText("/home/user/photos");
-    ui->lineEdit_Refs->setPlaceholderText("0x8825");
-    ui->lineEdit_Tags->setPlaceholderText("0x0001 0x0002 0x0003");
     QObject::connect(ui->buttonExit,    &QPushButton::clicked,  this,   &QWidget::close);
     QObject::connect(ui->buttonAnalyze, &QPushButton::clicked,  this,   &Win::showFormAnalyze);
     QObject::connect(ui->buttonOpenDir, &QPushButton::clicked,  this,   &Win::showFileBrowser);
     QObject::connect(ui->tabWidget, &QTabWidget::tabCloseRequested, this, &Win::closeTab);
+
+    prepareWindow();
+}
+
+void Win::showFileBrowser()
+{
+    QString filename = QFileDialog::getExistingDirectory(
+        this, 
+        "Open directory",
+        "/home/mikhail",
+        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks
+    );
+
+    ui->lineEdit_OpenDir->setText(filename);
+
+    // Фокус на кнопку "Анализировать" 
+    ui->buttonAnalyze->setFocus();
+    ui->buttonAnalyze->setDefault(true);
+}
+
+void Win::closeTab(int index)
+{
+    if (index != 0)
+    {
+        ui->tabWidget->removeTab(index);
+    }
+    else
+    {
+        QMessageBox::information(this, "Предупреждение", "Главную вкладку нельзя закрыть");
+    }
+}
+
+
+void Win::showFormAnalyze()
+{
+    // Заполнение векторов тегами
+
+    std::vector<uint16_t> vecTags;
+    std::vector<uint16_t> vecRefs;
+    
+    fillVectorFromCheckBoxes(vecTags, vecRefs);
+
+    fillVectorFromLineEdit(vecTags, vecRefs);
+   
+    // Инициализация объекта по извлечению метаданных
+
+    extracterExif.AddTags(vecTags);
+    extracterExif.AddRefs(vecRefs);
+
+    // Извлечение метаданных фотографий из указанной директории
+
+    std::string path = ui->lineEdit_OpenDir->text().toStdString();
+    std::filesystem::path file_directory{path};
+
+    std::vector<ReportExtraction> vecReports = AnalyzeDirectoryImages(file_directory, extracterExif);
+
+    // Подсчет количества строк в таблице
+
+    size_t nRows = getCountRows(vecReports);
+
+    // Создание виджета с таблицей извлеченных метаданных
+
+    formAnalyze = new FormAnalyze(nRows, vecTags.size() + 1);
+
+    // Заполнение вектора названий полей метаданных
+
+    // "title" + названия метаданных
+    std::vector<std::string> vecHeaders(vecTags.size() + 1);
+    
+    fillVectorFields(vecTags, vecHeaders);
+
+    formAnalyze->SetHorizontalHeaders(vecHeaders);
+    
+    // Заполнение таблицы
+
+    fillTableWithReports(vecTags, vecReports);
+
+    // Уводомление с указанием фотографий, в которых не найден формат Exif
+
+    notifyAboutFilesWithoutExif(vecReports);
+
+    // Добавление новой вкладки с таблицей
+
+    showWidgetInTab(formAnalyze);
+}
+
+Win::~Win()
+{
+    delete ui;
+}
+
+void Win::prepareWindow()
+{
+    ui->lineEdit_OpenDir->setPlaceholderText("/home/user/photos");
+    ui->lineEdit_Refs->setPlaceholderText("0x8825");
+    ui->lineEdit_Tags->setPlaceholderText("0x0001 0x0002 0x0003");
 
     ui->label_HyperLink->setTextInteractionFlags(Qt::LinksAccessibleByMouse);
     ui->label_HyperLink->setOpenExternalLinks(true);
@@ -53,7 +144,6 @@ Win::Win(QWidget *parent)
         "Если теги, которые вы ввели выше, не расположены в следующих каталогах <br>\
         <strong>IFD0, SubIFD, IFD1</strong>,<br>введите теги, ссылающиеся на директории тегов, для поиска искомых тегов в них.<br><br>\
         <i>Теги в шестнадцатеричном формате, например 0x8891, 0x9345</i>"
-        // "Введите теги, ссылающиеся на директории тегов, для поиска тегов, которые ввели выше"
     );
     ui->label_OwnTags->setToolTip(
         "Введите интересующие теги<br><br>\
@@ -61,41 +151,14 @@ Win::Win(QWidget *parent)
     );
 
     ui->tabWidget->removeTab(1);
-    // убрать на первом табе крестик для удаления
+    ui->tabWidget->setTabText(0, "Главная");
 }
 
-void Win::showFileBrowser()
+void Win::fillVectorFromCheckBoxes(std::vector<uint16_t> &vecTags, std::vector<uint16_t> &vecRefs)
 {
-    QString filename = QFileDialog::getExistingDirectory(
-        this, 
-        "Open directory",
-        "/home/mikhail",
-        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks
-    );
-
-    ui->lineEdit_OpenDir->setText(filename);
-}
-
-void Win::closeTab(int index)
-{
-    if (index != 0)
-    {
-        ui->tabWidget->removeTab(index);
-    }
-    // else message
-}
-
-// C:\photos
-// C:\photos\noedit
-void Win::showFormAnalyze()
-{
-    std::string path = ui->lineEdit_OpenDir->text().toStdString();
-    std::filesystem::path file_directory{path};
-
-    std::vector<uint16_t> vecTags;
-    std::vector<uint16_t> vecRefs;
-    // теги должны доставаться из QEditLine и QCheckBox
-    vecTags.push_back(0x9003); // дата и время
+    // Дата и время (тег по умолчанию)
+    vecTags.push_back(0x9003); 
+    
     if (ui->checkBox_ET->isChecked())
     {
         vecTags.push_back(0x829a);
@@ -120,9 +183,11 @@ void Win::showFormAnalyze()
         vecTags.push_back(0x0003);
         vecTags.push_back(0x0004);
     }
+}
 
-    // возможно можно так: streamTags >> std::hex >> tag;
-    auto fillFromLineEdit = [](std::string const &tags, std::vector<uint16_t> &vec){
+void Win::fillVectorFromLineEdit(std::vector<uint16_t> &vecTags, std::vector<uint16_t> &vecRefs)
+{
+    auto parseHexStrings = [](std::string const &tags, std::vector<uint16_t> &vec){
         if (!tags.empty())
         {
             std::stringstream streamTags(tags);
@@ -135,18 +200,12 @@ void Win::showFormAnalyze()
         }    
     };
     
-    fillFromLineEdit(ui->lineEdit_Tags->text().toStdString(), vecTags);
-    fillFromLineEdit(ui->lineEdit_Refs->text().toStdString(), vecRefs);
-   
+    parseHexStrings(ui->lineEdit_Tags->text().toStdString(), vecTags);
+    parseHexStrings(ui->lineEdit_Refs->text().toStdString(), vecRefs);
+}
 
-    extracterExif.AddTags(vecTags);
-    extracterExif.AddRefs(vecRefs);
-
-    std::vector<ReportExtraction> vecReports = AnalyzeDirectoryImages(file_directory, extracterExif);
-
-    // возможно стоит в цикле заполнения строк всталять новые строки
-    // tableWidget->insertRow( tableWidget->rowCount() );
-    
+size_t Win::getCountRows(std::vector<ReportExtraction> const &vecReports)
+{
     size_t nRows = 0;
     for (size_t i = 0; i < vecReports.size(); ++i)
     {
@@ -155,61 +214,61 @@ void Win::showFormAnalyze()
             nRows++;
         }
     }
+    return nRows;
+}
 
-    formAnalyze = new FormAnalyze(nRows, vecTags.size() + 1);
+void Win::fillVectorFields(std::vector<uint16_t> const &vecTags,std::vector<std::string> &vecFields)
+{
+    vecFields[0] = "Tittle";
 
-    // Форма с таблицей извлеченных метаданных
-    // + 1 колонка для заголовка
-    // formAnalyze = new FormAnalyze(vecReports.size(), vecTags.size() + 1);
-    // те отчеты в которых done = false входят в вектор, so для них резервируется место в таблице
-
-
-    // Заголовки ("title" + названия метаданных)
-    std::vector<std::string> vecHeaders(vecTags.size() + 1);
-    vecHeaders[0] = "Tittle";
-
-    // Заполнение вектора заголовков 
     for (size_t i = 0; i < vecTags.size(); ++i)
     {
-        std::cout << "hex = " << std::hex << vecTags[i] << std::endl;
-        auto it = ExtracterExif::mapTagsName.find(vecTags[i]); // обращаемся к static const полю
+        // обращаемся к static const полю
+        auto it = ExtracterExif::mapTagsName.find(vecTags[i]); 
         if (it != ExtracterExif::mapTagsName.end())
         {
-            puts("y");
-            vecHeaders[i + 1] = ExtracterExif::mapTagsName.at(vecTags[i]);
+            vecFields[i + 1] = ExtracterExif::mapTagsName.at(vecTags[i]);
         }
         else
         {
-            puts("n");
             std::string tagStr;
             std::stringstream sstream;
             sstream << "0x" << std::setfill('0') << std::setw(4) << std::hex << vecTags[i];
             sstream >> tagStr;
-            vecHeaders[i + 1] = tagStr;
+            vecFields[i + 1] = tagStr;
         }
     }
-    formAnalyze->SetHorizontalHeaders(vecHeaders);
+}
 
-    std::vector<std::string> vecFilesNoExif;
-    // Заполнение таблицы
+void Win::fillTableWithReports(std::vector<uint16_t> const &vecTags, std::vector<ReportExtraction> const &vecReports)
+{
     size_t row = 0;
     for (size_t i = 0; i < vecReports.size(); ++i)
     {
-        if (vecReports[i].done == false)
-        {   
-            vecFilesNoExif.push_back(vecReports[i].file_name);
-        }
-        else
+        if (vecReports[i].done == true)
         {
             std::vector<std::string> vecMetadata;
             vecMetadata.push_back(vecReports[i].file_name);
             for (size_t j = 0; j < vecTags.size(); ++j)
             {
                 // пустая строка, если не нашел 
-                vecMetadata.push_back(vecReports[i].mapData[vecTags[j]]);
+                vecMetadata.push_back(vecReports[i].mapData.at(vecTags[j]));
             }
             formAnalyze->AddRow(row, vecMetadata);
             ++row;
+        }
+    }
+}
+
+void Win::notifyAboutFilesWithoutExif(std::vector<ReportExtraction> const &vecReports)
+{
+    std::vector<std::string> vecFilesNoExif;
+
+    for (size_t i = 0; i < vecReports.size(); ++i)
+    {
+        if (vecReports[i].done == false)
+        {   
+            vecFilesNoExif.push_back(vecReports[i].file_name);
         }
     }
 
@@ -222,15 +281,14 @@ void Win::showFormAnalyze()
                             });
 
         QMessageBox::warning(this, "Предупреждение", 
-                    "Photos [ " + QString::fromStdString(listFilesNoExif) + " ] did not find Exif");
+                    "В следующих фотографиях <strong>" + QString::fromStdString(listFilesNoExif) + "</strong> не найден формат Exif");
     }
-    ui->tabWidget->addTab(formAnalyze, "Graph");
-    // formAnalyze->show();
 }
 
-Win::~Win()
+void Win::showWidgetInTab(QWidget *widget)
 {
-    delete ui;
+    ui->tabWidget->addTab(widget, "Таблица #" + QString::number(ui->tabWidget->count()));
+    ui->tabWidget->setCurrentIndex(ui->tabWidget->count() - 1);
 }
 
 std::vector<ReportExtraction> AnalyzeDirectoryImages(std::filesystem::path const &directory_path, ExtracterExif &extracterExif)

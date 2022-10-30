@@ -10,13 +10,6 @@ QT_BEGIN_NAMESPACE
 namespace Ui { class Win; }
 QT_END_NAMESPACE
 
-// std::vector<ReportExtraction> AnalyzeDirectoryImages(std::filesystem::path const &directory_path, ExtracterExif &extracterExif);
-
-// /media/mikhail/8E54B23D54B2283B/photos
-// /media/mikhail/8E54B23D54B2283B/photos
-//media/mikhail/8E54B23D54B2283B/МГТУ/_Технопарк/C_С++/Летние_тренировки/bin_file/photos
-// /home/mikhail/Qt/myQtProjects/photos
-
 class Win : public QWidget
 {
     Q_OBJECT
@@ -31,9 +24,26 @@ public slots:
 
 private:
     Ui::Win *ui;
-    FormAnalyze *formAnalyze = nullptr;
     ExtracterExif extracterExif;
-    // интересующие пользователя теги
-    // std::vector<uint16_t> vecTags = { 0x829A, 0x8827, 0x920A, 0x829d, 0x9003, 0x0001, 0x0003 };
+    FormAnalyze *formAnalyze = nullptr;
+    
+    void prepareWindow();
+
+    void fillVectorFromCheckBoxes(std::vector<uint16_t> &vecTags, std::vector<uint16_t> &vecRefs);
+
+    void fillVectorFromLineEdit(std::vector<uint16_t> &vecTags, std::vector<uint16_t> &vecRefs);
+
+    size_t getCountRows(std::vector<ReportExtraction> const &vecReports);
+
+    void fillVectorFields(std::vector<uint16_t> const &vecTags, std::vector<std::string> &vecFields);
+
+    void fillTableWithReports(std::vector<uint16_t> const &vecTags, std::vector<ReportExtraction> const &vecReports);
+
+    void notifyAboutFilesWithoutExif(std::vector<ReportExtraction> const &vecReports);
+
+    void showWidgetInTab(QWidget *widget);
 };
 #endif // WIN_H
+
+// интересующие пользователя теги
+// std::vector<uint16_t> vecTags = { 0x829A, 0x8827, 0x920A, 0x829d, 0x9003, 0x0001, 0x0003 };

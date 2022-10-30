@@ -14,8 +14,19 @@ FormAnalyze::FormAnalyze(size_t rows, size_t cols, QWidget *parent) :
     ui->setupUi(this); 
     ui->tableWidget->setRowCount(rows);
     ui->tableWidget->setColumnCount(cols);
-    QObject::connect(ui->buttonExit, &QPushButton::clicked, this, &QWidget::close);
-    QObject::connect(ui->buttonGraph, &QPushButton::clicked, this, &FormAnalyze::ShowFormGraph); 
+    QObject::connect(ui->buttonGraph, &QPushButton::clicked, this, &FormAnalyze::ShowFormGraph);    
+    QObject::connect(ui->button_Export, &QPushButton::clicked, this, &FormAnalyze::Export);
+
+
+    ui->buttonGPS->setEnabled(false);
+    ui->buttonGraph->setEnabled(false);
+
+    ui->button_Export->setToolTip("Экспортировать таблицу в формате CSV");
+}
+
+void FormAnalyze::Export()
+{
+    std::cout << "hello";
 }
 
 void FormAnalyze::AddRow(size_t row, std::vector<std::string> const &vec)
