@@ -18,8 +18,6 @@ FormAnalyze::FormAnalyze(size_t rows, size_t cols, QWidget *parent) :
 
     ui->tableWidget->setSortingEnabled(true);
 
-
-
     QObject::connect(ui->buttonGraph, &QPushButton::clicked, this, &
     FormAnalyze::ShowFormGraph);    
     QObject::connect(ui->button_Export, &QPushButton::clicked, this, &FormAnalyze::Export);
@@ -45,7 +43,29 @@ void FormAnalyze::SetOptimalSize()
 
 void FormAnalyze::Export()
 {
-    std::cout << "hello";
+    std::ofstream stream("../test.csv");
+
+    for (size_t j = 0; j < ui->tableWidget->columnCount(); ++j)
+    {
+        stream << ui->tableWidget->takeHorizontalHeaderItem(j)->text().toStdString();
+        if (j + 1 != ui->tableWidget->columnCount())
+        {
+            stream << ',';
+        }
+    }
+    stream << '\n';
+    for (size_t i = 0; i < ui->tableWidget->rowCount(); ++i)
+    {
+        for (size_t j = 0; j < ui->tableWidget->columnCount(); ++j)
+        {
+            stream << ui->tableWidget->item(i, j)->text().toStdString();
+            if (j + 1 != ui->tableWidget->columnCount())
+            {
+                stream << ',';
+            }
+        }
+        stream << '\n';
+    }
 }
 
 void FormAnalyze::AddRow(size_t row, std::vector<std::string> const &vec)

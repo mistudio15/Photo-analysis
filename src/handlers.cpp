@@ -199,3 +199,9 @@ void LatitudeLongtitudeHandler::Handle(std::string &property)
     }
     property = toStringWithoutZeros(value);
 }
+
+void DateTimeHandler::Handle(std::string &property)
+{
+    puts("DateTimeHandler");
+    std::replace(property.begin(), property.begin() + 10, ':', '.');
+}
