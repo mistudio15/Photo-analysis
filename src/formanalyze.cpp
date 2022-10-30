@@ -1,5 +1,6 @@
 #include <QPushButton>
 #include <QTableWidget>
+#include <QTableView>
 
 #include "formanalyze.h"
 #include "ui_formanalyze.h"
@@ -14,7 +15,13 @@ FormAnalyze::FormAnalyze(size_t rows, size_t cols, QWidget *parent) :
     ui->setupUi(this); 
     ui->tableWidget->setRowCount(rows);
     ui->tableWidget->setColumnCount(cols);
-    QObject::connect(ui->buttonGraph, &QPushButton::clicked, this, &FormAnalyze::ShowFormGraph);    
+
+    ui->tableWidget->setSortingEnabled(true);
+
+
+
+    QObject::connect(ui->buttonGraph, &QPushButton::clicked, this, &
+    FormAnalyze::ShowFormGraph);    
     QObject::connect(ui->button_Export, &QPushButton::clicked, this, &FormAnalyze::Export);
 
 
@@ -22,6 +29,18 @@ FormAnalyze::FormAnalyze(size_t rows, size_t cols, QWidget *parent) :
     ui->buttonGraph->setEnabled(false);
 
     ui->button_Export->setToolTip("Экспортировать таблицу в формате CSV");
+}
+
+void FormAnalyze::SetOptimalSize()
+{
+    ui->tableWidget->setVisible(false);
+    ui->tableWidget->resizeColumnsToContents();
+    ui->tableWidget->setVisible(true);  
+
+    for (size_t i = 0; i < ui->tableWidget->columnCount(); ++i)
+    {
+        ui->tableWidget->setColumnWidth(i, ui->tableWidget->columnWidth(i) + 30);
+    }
 }
 
 void FormAnalyze::Export()
@@ -47,6 +66,11 @@ void FormAnalyze::SetHorizontalHeaders(std::vector<std::string> const &vecHeader
         stringList << QString::fromStdString(vecHeaders[i]);
     }
     ui->tableWidget->setHorizontalHeaderLabels(stringList);
+}
+
+void FormAnalyze::SetItem(int row, int col, QTableWidgetItem *item)
+{
+    ui->tableWidget->setItem(row, col, item);
 }
 
 void FormAnalyze::ShowFormGraph()

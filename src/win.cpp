@@ -104,6 +104,7 @@ void Win::showFormAnalyze()
 
     notifyAboutFilesWithoutExif(vecReports);
 
+    formAnalyze->SetOptimalSize();
     // Добавление новой вкладки с таблицей
 
     showWidgetInTab(formAnalyze);
@@ -219,7 +220,7 @@ size_t Win::getCountRows(std::vector<ReportExtraction> const &vecReports)
 
 void Win::fillVectorFields(std::vector<uint16_t> const &vecTags,std::vector<std::string> &vecFields)
 {
-    vecFields[0] = "Tittle";
+    vecFields[0] = "Фотография";
 
     for (size_t i = 0; i < vecTags.size(); ++i)
     {
@@ -239,7 +240,10 @@ void Win::fillVectorFields(std::vector<uint16_t> const &vecTags,std::vector<std:
         }
     }
 }
+ #include <QVariant>
 
+// используем item->setData, который принимает QVariant
+// QVariant будет правильно сортироваться (строки лексикографически, числа арифметически)
 void Win::fillTableWithReports(std::vector<uint16_t> const &vecTags, std::vector<ReportExtraction> const &vecReports)
 {
     size_t row = 0;
@@ -247,14 +251,33 @@ void Win::fillTableWithReports(std::vector<uint16_t> const &vecTags, std::vector
     {
         if (vecReports[i].done == true)
         {
-            std::vector<std::string> vecMetadata;
-            vecMetadata.push_back(vecReports[i].file_name);
+            QTableWidgetItem *item = new QTableWidgetItem;
+            item->setData(Qt::EditRole, QString::fromStdString(vecReports[i].file_name));
+            formAnalyze->SetItem(row, 0, item);
+
             for (size_t j = 0; j < vecTags.size(); ++j)
             {
-                // пустая строка, если не нашел 
-                vecMetadata.push_back(vecReports[i].mapData.at(vecTags[j]));
+                auto it = vecReports[i].mapData.find(vecTags[j]);
+                QTableWidgetItem *item = new QTableWidgetItem;
+                if (it != vecReports[i].mapData.end())
+                {
+                    double value;
+                    if (value = QString::fromStdString(vecReports[i].mapData.at(vecTags[j])).toDouble())
+                    {
+                        item->setData(Qt::EditRole, value);
+                    }
+                    else
+                    {
+                        item->setData(Qt::EditRole, QString::fromStdString(vecReports[i].mapData.at(vecTags[j])));
+                    }
+                }
+                else
+                {
+                    // пустая строка, если не нашел 
+                    item->setData(Qt::EditRole, "");
+                }
+                formAnalyze->SetItem(row, j + 1, item);
             }
-            formAnalyze->AddRow(row, vecMetadata);
             ++row;
         }
     }

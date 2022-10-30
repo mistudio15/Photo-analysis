@@ -74,7 +74,7 @@ public:
     virtual bool ShouldHandle(uint16_t tag) = 0;
     virtual void Handle(std::string &property) = 0;
 protected:
-    std::string toStringNoZero(double value)
+    std::string toStringWithoutZeros(double value)
     {
         std::ostringstream stream;
         stream /*<< std::setprecision(1)*/ << std::noshowpoint << value;
@@ -113,6 +113,26 @@ public:
     virtual void Handle(std::string &property) override; 
 };
 
+class LatitudeLongtitudeRefHandler : public PropertyHandler
+{
+public:
+    virtual bool ShouldHandle(uint16_t tag) override
+    {
+        return tag == 0x0001 || tag == 0x0003;
+    }
+    virtual void Handle(std::string &property) override; 
+};
+
+class LatitudeLongtitudeHandler : public PropertyHandler
+{
+public:
+    virtual bool ShouldHandle(uint16_t tag) override
+    {
+        return tag == 0x0002 || tag == 0x0004;
+    }
+    virtual void Handle(std::string &property) override; 
+};
+
 class ManagerHandlerProperty
 {
 public:
@@ -121,6 +141,8 @@ public:
         vecHandlers.push_back(std::make_unique<ExposureTimeHandler>());
         vecHandlers.push_back(std::make_unique<ApertureValueHandler>());
         vecHandlers.push_back(std::make_unique<FocalLengthHandler>());
+        vecHandlers.push_back(std::make_unique<LatitudeLongtitudeRefHandler>());
+        vecHandlers.push_back(std::make_unique<LatitudeLongtitudeHandler>());
     }
     void Handle(uint16_t tag, std::string &property);
 private:

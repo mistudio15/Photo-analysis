@@ -9,13 +9,13 @@ const bytes cExifHeader         = { 0x45, 0x78, 0x69, 0x66, 0x00, 0x00 };
 const bytes cByteAlignMM        = { 0x4d, 0x4d };
 const bytes cByteAlignII        = { 0x49, 0x49 };
 
-const bytes cExifOffset         = { 0x87, 0x69 };
+// const bytes cExifOffset         = { 0x87, 0x69 };
 
-const bytes cExposureTime       = { 0x82, 0x9a };
-const bytes cISO                = { 0x88, 0x27 };
-const bytes cDateTimeOriginal   = { 0x90, 0x03 };
-const bytes cApertureValue      = { 0x92, 0x02 };
-const bytes cFocalLength        = { 0x92, 0x0A };
+// const bytes cExposureTime       = { 0x82, 0x9a };
+// const bytes cISO                = { 0x88, 0x27 };
+// const bytes cDateTimeOriginal   = { 0x90, 0x03 };
+// const bytes cApertureValue      = { 0x92, 0x02 };
+// const bytes cFocalLength        = { 0x92, 0x0A };
 
 std::ostream &operator <<(std::ostream &out, Tags const &tag)
 {
@@ -67,6 +67,7 @@ void ReverseBytes(bytes &bytes)
     std::reverse(bytes.begin(), bytes.end());
 }
 
+// Складывает октеты (байты) в одно число
 uint64_t MergeBytes(bytes const &vecBytes)
 {
     assert(vecBytes.size() > 0);
@@ -83,7 +84,6 @@ uint64_t MergeBytes(bytes const &vecBytes)
     return result;
 }
 
-// C:\photos
 ExtracterExif::ExtracterExif(std::vector<uint16_t> const &tags) : vecTags(tags)
 {
     vecHandlers.push_back(std::make_unique<Type2Handler>());
@@ -122,6 +122,8 @@ ReportExtraction ExtracterExif::ExtractExif(InBinFile &file)
         (GPS Tags, Photoshop Tags, ...)
         Ссылки на такие директории в vecRefs<uint16_t>
     */
+
+    // если смещение == 0, каталогов больше нет
     while (MergeBytes(buf4) != 0)
     {
         file.Seek(offset + MergeBytes(buf4));
@@ -134,15 +136,15 @@ ReportExtraction ExtracterExif::ExtractExif(InBinFile &file)
 
 void ExtracterExif::Parse(InBinFile &file)
 {
-    // Количество записей
+    // Количество записей в каталоге
     file.Read(buf2);
     size_t nEntries = MergeBytes(buf2);
     for (size_t i = 0; i < nEntries; ++i)
     {
-        // Тэг
+        // Читаем тэг
         file.Read(buf2);
 
-        // Парсим поддиректорию
+        // Если тег ссылочный и установлен, парсим поддиректорию
         auto itRefs = std::find(vecRefs.begin(), vecRefs.end(), MergeBytes(buf2));
         if (itRefs != vecRefs.end())
         {
@@ -158,27 +160,37 @@ void ExtracterExif::Parse(InBinFile &file)
             continue;
         }
 
-        // Тэг записи не установлен
+        // Если тэг не ссылочный и не установлен, запись пропускается
         auto itTags = std::find(vecTags.begin(), vecTags.end(), MergeBytes(buf2));
         if (itTags == vecTags.end())
         {
             // Пропускаем запись
             file.Seek(10, StartPoint::CUR);
         }
-        // Тэг записи установлен
+        // Текущий тег установлен, поэтому обрабатываем его
         else
         {
             uint16_t curTag = MergeBytes(buf2);
+
             // Код формата данных
             file.Read(buf2);
             int typeDataFormat = MergeBytes(buf2);
-            // читаем метаданные согласно типу формата метаданных 
-            // для каждого типа формата данных свой обработчик
+
+            /*
+                ИЗВЛЕКАЕМ СЫРЫЕ ДАННЫЕ
+                    - Читаем метаданные согласно типу формата метаданных 
+                    - Для каждого типа формата данных свой обработчик
+                    - Записываем "сырые" извлеченные данные в report.mapData[curTag]
+            */
             managerHandlerType.Handle(typeDataFormat, report.mapData[curTag], file, offset);
-            // обрабатываем извлеченные "сырые" свойства 
-            // например 
-                // выдержка извлекается уже обратная (т.е. 1/<value>)
-                // нам удобнее воспринимать само value - на каждое свойство свой обработчик 
+
+            /*
+                ОБРАБАТЫВАЕМ "СЫРЫЕ" ДАННЫЕ  
+                - На каждое свойство свой обработчик 
+                - Например 
+                    - выдержка извлекается уже обратная (т.е. 1/<value>)
+                    - нам удобнее воспринимать само value 
+            */
             managerHandlerProperty.Handle(curTag, report.mapData[curTag]);
         }
     }

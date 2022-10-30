@@ -55,15 +55,15 @@ public:
     void ClearTags() { vecTags.clear(); }
     ReportExtraction ExtractExif(InBinFile &file);
     inline static const std::unordered_map<uint16_t, std::string> mapTagsName = {
-        { 0x829a, "ExposureTime" },
+        { 0x829a, "Выдержка" },
         { 0x8827, "ISO" },
-        { 0x9003, "DateTimeOriginal" },
-        { 0x829d, "F-Number" },
-        { 0x920a, "FocalLength" },
-        { 0x0001, "LatitudeRef" },
-        { 0x0002, "Latitude" },
-        { 0x0003, "LongitudeRef" },
-        { 0x0004, "Longitude" }
+        { 0x9003, "Дата и время" },
+        { 0x829d, "Диафрагма" },
+        { 0x920a, "Фокусное расст." },
+        { 0x0001, "Тип широты" },
+        { 0x0002, "Широта" },
+        { 0x0003, "Тип долготы" },
+        { 0x0004, "Долгота" }
     };
 private:
     size_t offset;

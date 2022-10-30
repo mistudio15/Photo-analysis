@@ -20,6 +20,8 @@ public:
     void AddRow(size_t row, std::vector<std::string> const &vec);
     void SetHorizontalHeaders(std::vector<std::string> const &vecHeaders);
     ~FormAnalyze();
+    void SetOptimalSize();
+    void SetItem(int row, int col, QTableWidgetItem *item);
 public slots:
     void ShowFormGraph();
     void Export();

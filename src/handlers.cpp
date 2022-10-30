@@ -139,19 +139,63 @@ void ExposureTimeHandler::Handle(std::string &property)
 {
     puts("ExposureTimeHandler");
     double value = std::round(1.0 / stod(property, nullptr));
-    property = toStringNoZero(value);
+    property = toStringWithoutZeros(value);
 }
 
 void ApertureValueHandler::Handle(std::string &property)
 {
     puts("ApertureValueHandler");
     double value = std::round(stod(property, nullptr) * 10) / 10;
-    property = toStringNoZero(value);
+    property = toStringWithoutZeros(value);
 }
 
 void FocalLengthHandler::Handle(std::string &property)
 {
     puts("FocalLengthHandler");
     double value = std::round(stod(property, nullptr));
-    property = toStringNoZero(value);
+    property = toStringWithoutZeros(value);
+}
+
+void LatitudeLongtitudeRefHandler::Handle(std::string &property)
+{
+    puts("LatitudeLongtitudeRefHandler");
+    switch(property[0])
+    {
+        case 'N':
+        {
+            property = "Север";
+            break;
+        }
+        case 'S':
+        {
+            property = "Юг";
+            break;
+        }
+        case 'E':
+        {
+            property = "Восток";
+            break;
+        }
+        case 'W':
+        {
+            property = "Запад";
+            break;
+        }
+    }
+}
+
+void LatitudeLongtitudeHandler::Handle(std::string &property)
+{
+    puts("LatitudeLongtitudeRefHandler");
+    std::replace(property.begin(), property.end(), ',', '.');
+    std::stringstream stream(property);
+    double value = 0;
+    for (size_t i = 0; i < 3; ++i)
+    {
+        double tmp_value;
+        stream >> tmp_value;
+        tmp_value /= std::pow(60, i);
+        value += tmp_value;
+    }
+    property = toStringWithoutZeros(value);
 }
