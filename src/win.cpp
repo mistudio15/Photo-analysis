@@ -51,7 +51,7 @@ void Win::closeTab(int index)
     }
     else
     {
-        QMessageBox::information(this, "Предупреждение", "Главную вкладку нельзя закрыть");
+        QMessageBox::warning(this, "Предупреждение", "Главную вкладку нельзя закрыть");
     }
 }
 
@@ -82,6 +82,12 @@ void Win::showFormAnalyze()
     // Подсчет количества строк в таблице
 
     size_t nRows = getCountRows(vecReports);
+
+    if (nRows == 0)
+    {
+        QMessageBox::warning(this, "Предупреждение", "Директория не содержит фотографии формата JPEG");
+        return;
+    }
 
     // Создание виджета с таблицей извлеченных метаданных
 

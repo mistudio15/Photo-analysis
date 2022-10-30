@@ -1,6 +1,7 @@
 #include <QPushButton>
 #include <QTableWidget>
 #include <QTableView>
+#include <QMessageBox>
 
 #include "formanalyze.h"
 #include "ui_formanalyze.h"
@@ -43,7 +44,10 @@ void FormAnalyze::SetOptimalSize()
 
 void FormAnalyze::Export()
 {
-    std::ofstream stream("../test.csv");
+    time_t now = time(0);
+    std::string file_name = "extracted_data_" + std::to_string(now) + ".csv"; 
+    std::filesystem::create_directories("../artifacts");
+    std::ofstream stream("../artifacts/" + file_name, std::ios::out);
 
     for (size_t j = 0; j < ui->tableWidget->columnCount(); ++j)
     {
@@ -66,6 +70,11 @@ void FormAnalyze::Export()
         }
         stream << '\n';
     }
+    stream.flush();
+    stream.close();
+
+    QMessageBox::information(this, "Информация", 
+                    "Был экспортирован файл " + QString::fromStdString(file_name) + " в каталог artifacts");
 }
 
 void FormAnalyze::AddRow(size_t row, std::vector<std::string> const &vec)
