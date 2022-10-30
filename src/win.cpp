@@ -2,10 +2,14 @@
 #include <QString>
 #include <QVector>
 #include <QMessageBox>
+#include <QFileDialog>
+#include <QTabWidget>
+#include <QDebug>
 
-#include "include/stdafx.h"
 
-#include "include/win.h"
+#include "stdafx.h"
+
+#include "win.h"
 #include "ui_win.h"
 
 std::vector<ReportExtraction> AnalyzeDirectoryImages(std::filesystem::path const &directory_path, ExtracterExif &extracterExif);
@@ -15,15 +19,77 @@ Win::Win(QWidget *parent)
     , ui(new Ui::Win)
 {
     ui->setupUi(this); 
+
+    QVector<int> vec;
+    ui->lineEdit_OpenDir->setPlaceholderText("/home/user/photos");
+    ui->lineEdit_Refs->setPlaceholderText("0x8825");
+    ui->lineEdit_Tags->setPlaceholderText("0x0001 0x0002 0x0003");
     QObject::connect(ui->buttonExit,    &QPushButton::clicked,  this,   &QWidget::close);
     QObject::connect(ui->buttonAnalyze, &QPushButton::clicked,  this,   &Win::showFormAnalyze);
+    QObject::connect(ui->buttonOpenDir, &QPushButton::clicked,  this,   &Win::showFileBrowser);
+    QObject::connect(ui->tabWidget, &QTabWidget::tabCloseRequested, this, &Win::closeTab);
+
+    ui->label_HyperLink->setTextInteractionFlags(Qt::LinksAccessibleByMouse);
+    ui->label_HyperLink->setOpenExternalLinks(true);
+    ui->label_HyperLink->setText("<a href=\"https://www.media.mit.edu/pia/Research/deepview/exif.html\">Документация на стандарт Exif</a>");
+
+    ui->label_HyperLinkListTags->setTextInteractionFlags(Qt::LinksAccessibleByMouse);
+    ui->label_HyperLinkListTags->setOpenExternalLinks(true);
+    ui->label_HyperLinkListTags->setText("<a href=\"https://exiftool.org/TagNames/EXIF.html\">Список тегов стандарта Exif</a>");
+
+    QPixmap pix("/home/mikhail/qt_projects/Photo-analysis/static/logo_jpg.png");
+    ui->label_ImageLogo->setPixmap(pix);
+    ui->label_ImageLogo->setScaledContents(true);
+    int pixWidth = pix.width();
+    int labelWidth = ui->label_ImageLogo->width();
+    double factor = (double)labelWidth / pixWidth;
+    ui->label_ImageLogo->setFixedWidth(factor * pix.width());
+    ui->label_ImageLogo->setFixedHeight(factor * pix.height());
+
+
+    ui->buttonOpenDir->setToolTip("Выберите директорию с фотографиями для извлечения метаданных");
+    ui->label_Tags->setToolTip("Выберите свойства, которых хотите извлечь из фотографий");
+    ui->label_Refs->setToolTip(
+        "Если теги, которые вы ввели выше, не расположены в следующих каталогах <br>\
+        <strong>IFD0, SubIFD, IFD1</strong>,<br>введите теги, ссылающиеся на директории тегов, для поиска искомых тегов в них.<br><br>\
+        <i>Теги в шестнадцатеричном формате, например 0x8891, 0x9345</i>"
+        // "Введите теги, ссылающиеся на директории тегов, для поиска тегов, которые ввели выше"
+    );
+    ui->label_OwnTags->setToolTip(
+        "Введите интересующие теги<br><br>\
+        <i>Теги в шестнадцатеричном формате, например 0x8891, 0x9345</i>"
+    );
+
+    ui->tabWidget->removeTab(1);
+    // убрать на первом табе крестик для удаления
+}
+
+void Win::showFileBrowser()
+{
+    QString filename = QFileDialog::getExistingDirectory(
+        this, 
+        "Open directory",
+        "/home/mikhail",
+        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks
+    );
+
+    ui->lineEdit_OpenDir->setText(filename);
+}
+
+void Win::closeTab(int index)
+{
+    if (index != 0)
+    {
+        ui->tabWidget->removeTab(index);
+    }
+    // else message
 }
 
 // C:\photos
 // C:\photos\noedit
 void Win::showFormAnalyze()
 {
-    std::string path = ui->linePath->text().toStdString();
+    std::string path = ui->lineEdit_OpenDir->text().toStdString();
     std::filesystem::path file_directory{path};
 
     std::vector<uint16_t> vecTags;
@@ -158,7 +224,8 @@ void Win::showFormAnalyze()
         QMessageBox::warning(this, "Предупреждение", 
                     "Photos [ " + QString::fromStdString(listFilesNoExif) + " ] did not find Exif");
     }
-    formAnalyze->show();
+    ui->tabWidget->addTab(formAnalyze, "Graph");
+    // formAnalyze->show();
 }
 
 Win::~Win()
@@ -179,4 +246,3 @@ std::vector<ReportExtraction> AnalyzeDirectoryImages(std::filesystem::path const
     }
     return vecReports;
 }
-

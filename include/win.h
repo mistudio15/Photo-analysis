@@ -26,6 +26,8 @@ public:
     ~Win();
 public slots:
     void showFormAnalyze();
+    void showFileBrowser();
+    void closeTab(int index);
 
 private:
     Ui::Win *ui;

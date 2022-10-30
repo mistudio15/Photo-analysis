@@ -1,4 +1,4 @@
-#ifndef FORMGRAPH_H
+    #ifndef FORMGRAPH_H
 #define FORMGRAPH_H
 
 #include <QWidget>

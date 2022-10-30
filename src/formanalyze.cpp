@@ -1,7 +1,7 @@
 #include <QPushButton>
 #include <QTableWidget>
 
-#include "include/formanalyze.h"
+#include "formanalyze.h"
 #include "ui_formanalyze.h"
 
 FormAnalyze::FormAnalyze(size_t rows, size_t cols, QWidget *parent) :

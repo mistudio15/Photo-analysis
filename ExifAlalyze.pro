@@ -9,7 +9,7 @@ CONFIG += c++17
 
 TEMPLATE = app
 TARGET = ExifAlalyze
-INCLUDEPATH += .
+INCLUDEPATH += include
 
 # You can make your code fail to compile if you use deprecated APIs.
 # In order to do so, uncomment the following line.

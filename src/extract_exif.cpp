@@ -1,4 +1,4 @@
-#include "include/extract_exif.h"
+#include "extract_exif.h"
 
 using std::cout;
 using std::endl;

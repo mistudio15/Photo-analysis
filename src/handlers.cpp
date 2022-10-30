@@ -1,5 +1,5 @@
-#include "include/handlers.h"
-#include "include/extract_exif.h"
+#include "handlers.h"
+#include "extract_exif.h"
 
 class InBinFile;
 

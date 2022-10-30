@@ -1,6 +1,6 @@
 #include <QApplication>
 
-#include "include/win.h"
+#include "win.h"
 
 /*
     + добавление к структуре ReportExif название фотографии
