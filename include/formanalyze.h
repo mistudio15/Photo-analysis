@@ -4,7 +4,7 @@
 #include <QWidget>
 
 #include "extract_exif.h"
-#include "formgraph.h"
+#include <QTableWidgetItem>
 
 namespace Ui {
 class FormAnalyze;
@@ -23,12 +23,10 @@ public:
     void SetOptimalSize();
     void SetItem(int row, int col, QTableWidgetItem *item);
 public slots:
-    void ShowFormGraph();
     void Export();
 
 private:
     Ui::FormAnalyze *ui;
-    FormGraph *formGraph = nullptr;
 };
 
 #endif // FORMANALYZE_H

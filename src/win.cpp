@@ -5,6 +5,7 @@
 #include <QFileDialog>
 #include <QTabWidget>
 #include <QDebug>
+#include <regex>
 
 #include "stdafx.h"
 
@@ -65,7 +66,11 @@ void Win::showFormAnalyze()
     
     fillVectorFromCheckBoxes(vecTags, vecRefs);
 
-    fillVectorFromLineEdit(vecTags, vecRefs);
+    if (!fillVectorFromLineEdit(vecTags, vecRefs))
+    {
+        QMessageBox::warning(this, "Предупреждение", "Список тегов введен некорректно");
+        return;
+    }
    
     // Инициализация объекта по извлечению метаданных
 
@@ -192,23 +197,45 @@ void Win::fillVectorFromCheckBoxes(std::vector<uint16_t> &vecTags, std::vector<u
     }
 }
 
-void Win::fillVectorFromLineEdit(std::vector<uint16_t> &vecTags, std::vector<uint16_t> &vecRefs)
+bool Win::fillVectorFromLineEdit(std::vector<uint16_t> &vecTags, std::vector<uint16_t> &vecRefs)
 {
-    auto parseHexStrings = [](std::string const &tags, std::vector<uint16_t> &vec){
+    auto parseHexStrings = [](std::string const &tags, std::vector<uint16_t> &vec) -> bool
+    {
+        std::regex rxVowelsWords("\\b[аеёиоуыэюя]+\\b",
+            std::regex_constants::collate | std::regex_constants::icase);
+        // проверяем всю строку на соответствие
+        std::regex regexFullString(R"(((0x[\dabcdf]{4}\b)\s*(as\s*(\w+)|)\s*(,|$)\s*)*)");
+        if (!std::regex_match(tags, regexFullString))
+        {
+            return false;
+        }
+        // извлекаем теги
+        std::regex regexTags(R"(0x[\dabcdf]{4}\b)");
+        std::vector<std::string> matches_tags
+        {
+            std::sregex_token_iterator{tags.begin(), tags.end(), regexTags, 0},
+            std::sregex_token_iterator{}
+        };
         if (!tags.empty())
         {
-            std::stringstream streamTags(tags);
-            std::string strTag;
-            while (streamTags >> strTag)
+            for (size_t i = 0; i < matches_tags.size(); ++i)
             {
-                uint16_t tag = (uint16_t)std::stoi(strTag, nullptr, 16);
+                uint16_t tag = (uint16_t)std::stoi(matches_tags[i], nullptr, 16);
                 vec.push_back(tag);
             }  
         }    
+        return true;
     };
-    
-    parseHexStrings(ui->lineEdit_Tags->text().toStdString(), vecTags);
-    parseHexStrings(ui->lineEdit_Refs->text().toStdString(), vecRefs);
+    if (!parseHexStrings(ui->lineEdit_Tags->text().toStdString(), vecTags))
+    {
+        return false;
+    }
+
+    if (!parseHexStrings(ui->lineEdit_Refs->text().toStdString(), vecRefs))
+    {
+        return false;
+    }
+    return true;
 }
 
 size_t Win::getCountRows(std::vector<ReportExtraction> const &vecReports)
@@ -228,22 +255,51 @@ void Win::fillVectorFields(std::vector<uint16_t> const &vecTags,std::vector<std:
 {
     vecFields[0] = "Фотография";
 
+    std::string inputStr = ui->lineEdit_Tags->text().toStdString();
+
+    // Извлекаем теги с альясами
+    std::regex regexTagsAliases(R"(0x([\dabcdf]{4}\b)\s*as\s*(\w+))");
+    std::vector<std::smatch> mathesTagAlieses{
+        std::sregex_iterator{inputStr.begin(), inputStr.end(), regexTagsAliases},
+        std::sregex_iterator{}
+    };
+    std::unordered_map<std::string, std::string> mapTagAlias;
+    for (size_t i = 0; i < mathesTagAlieses.size(); ++i)
+    {
+        mapTagAlias[mathesTagAlieses[i].str(1)] = mathesTagAlieses[i].str(2);
+    }
+
+    std::stringstream sstream;
     for (size_t i = 0; i < vecTags.size(); ++i)
     {
-        // обращаемся к static const полю
-        auto it = ExtracterExif::mapTagsName.find(vecTags[i]); 
-        if (it != ExtracterExif::mapTagsName.end())
+        // clear очищает флаги
+        sstream.str(std::string{});
+        sstream << std::setfill('0') << std::setw(4) << std::hex << vecTags[i];
+        auto it = mapTagAlias.find(sstream.str());
+        // Альяс найден
+        if (it != mapTagAlias.end())
         {
-            vecFields[i + 1] = ExtracterExif::mapTagsName.at(vecTags[i]);
+            vecFields[i + 1] = it->second;
         }
-        else
+        else 
         {
-            std::string tagStr;
-            std::stringstream sstream;
-            sstream << "0x" << std::setfill('0') << std::setw(4) << std::hex << vecTags[i];
-            sstream >> tagStr;
-            vecFields[i + 1] = tagStr;
+            auto it = ExtracterExif::mapTagsName.find(vecTags[i]); 
+            // Название тега известно
+            if (it != ExtracterExif::mapTagsName.end())
+            {
+                vecFields[i + 1] = ExtracterExif::mapTagsName.at(vecTags[i]);
+            }
+            // Название тега неизвестно
+            else
+            {
+                sstream.str(std::string{});
+                std::string tagStr;
+                sstream << "0x" << std::setfill('0') << std::setw(4) << std::hex << vecTags[i];
+                sstream >> tagStr;
+                vecFields[i + 1] = tagStr;
+            }
         }
+        
     }
 }
  #include <QVariant>

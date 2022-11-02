@@ -31,7 +31,7 @@ private:
 
     void fillVectorFromCheckBoxes(std::vector<uint16_t> &vecTags, std::vector<uint16_t> &vecRefs);
 
-    void fillVectorFromLineEdit(std::vector<uint16_t> &vecTags, std::vector<uint16_t> &vecRefs);
+    bool fillVectorFromLineEdit(std::vector<uint16_t> &vecTags, std::vector<uint16_t> &vecRefs);
 
     size_t getCountRows(std::vector<ReportExtraction> const &vecReports);
 

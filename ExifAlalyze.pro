@@ -6,6 +6,7 @@ QT       += core gui printsupport
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG += c++17
+QMAKE_CXXFLAGS += -g
 
 TEMPLATE = app
 TARGET = ExifAlalyze
@@ -21,19 +22,15 @@ INCLUDEPATH += include
 # Input
 HEADERS += include/extract_exif.h \
            include/formanalyze.h \
-           include/formgraph.h \
            include/handlers.h \
            include/input_bin_file.h \
-           include/qcustomplot.h \
            include/stdafx.h \
            include/win.h
 FORMS += formanalyze.ui formgraph.ui win.ui
 SOURCES += src/extract_exif.cpp \
            src/formanalyze.cpp \
-           src/formgraph.cpp \
            src/handlers.cpp \
            src/input_bin_file.cpp \
            src/main.cpp \
-           src/qcustomplot.cpp \
            src/stdafx.cpp \
            src/win.cpp

@@ -19,8 +19,6 @@ FormAnalyze::FormAnalyze(size_t rows, size_t cols, QWidget *parent) :
 
     ui->tableWidget->setSortingEnabled(true);
 
-    QObject::connect(ui->buttonGraph, &QPushButton::clicked, this, &
-    FormAnalyze::ShowFormGraph);    
     QObject::connect(ui->button_Export, &QPushButton::clicked, this, &FormAnalyze::Export);
 
 
@@ -45,13 +43,30 @@ void FormAnalyze::SetOptimalSize()
 void FormAnalyze::Export()
 {
     time_t now = time(0);
-    std::string file_name = "extracted_data_" + std::to_string(now) + ".csv"; 
+    std::tm *structTm = localtime(&now);
+    std::stringstream date;
+    char sep = '_';
+    date 
+        << 1900 +   structTm->tm_year 
+        << sep
+        << 1 +      structTm->tm_mon 
+        << sep
+        <<          structTm->tm_mday
+        << sep
+        <<          structTm->tm_hour
+        << sep
+        << 1 +      structTm->tm_hour
+        << sep
+        << 1 +      structTm->tm_min
+        << sep
+        << 1 +      structTm->tm_sec;
+    std::string file_name = "extracted_data_" + date.str() + ".csv"; 
     std::filesystem::create_directories("../artifacts");
     std::ofstream stream("../artifacts/" + file_name, std::ios::out);
 
     for (size_t j = 0; j < ui->tableWidget->columnCount(); ++j)
     {
-        stream << ui->tableWidget->takeHorizontalHeaderItem(j)->text().toStdString();
+        stream << ui->tableWidget->horizontalHeaderItem(j)->text().toStdString();
         if (j + 1 != ui->tableWidget->columnCount())
         {
             stream << ',';
@@ -100,18 +115,6 @@ void FormAnalyze::SetHorizontalHeaders(std::vector<std::string> const &vecHeader
 void FormAnalyze::SetItem(int row, int col, QTableWidgetItem *item)
 {
     ui->tableWidget->setItem(row, col, item);
-}
-
-void FormAnalyze::ShowFormGraph()
-{
-    /*
-        опираясь на построенную таблицу построить графики
-        1. нужно организовать ввод двух переменных - столбцов (y и x)
-        2. если один из столбков текстовый - построить диаграммы или вывести ошибку
-        2. нужно вытащить значения из таблицы
-    */
-    formGraph = new FormGraph(ui->tableWidget);
-    formGraph->show();
 }
 
 FormAnalyze::~FormAnalyze()
