@@ -201,8 +201,6 @@ bool Win::fillVectorFromLineEdit(std::vector<uint16_t> &vecTags, std::vector<uin
 {
     auto parseHexStrings = [](std::string const &tags, std::vector<uint16_t> &vec) -> bool
     {
-        std::regex rxVowelsWords("\\b[аеёиоуыэюя]+\\b",
-            std::regex_constants::collate | std::regex_constants::icase);
         // проверяем всю строку на соответствие
         std::regex regexFullString(R"(((0x[\dabcdf]{4}\b)\s*(as\s*(\w+)|)\s*(,|$)\s*)*)");
         if (!std::regex_match(tags, regexFullString))
